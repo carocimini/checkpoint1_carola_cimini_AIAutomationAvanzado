@@ -1,0 +1,461 @@
+{
+  "name": "checkpoint1_carola_cimini.json",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "085fe747-bde6-42c1-9ac0-00fc4e4b3f82",
+      "name": "When chat message received",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "e04b78d5-1353-4306-a7b3-7e6ee87c5eec"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Fecha y hora actual de Argentina: {{ $now.setZone('America/Argentina/Buenos_Aires').toFormat('yyyy-MM-dd HH:mm:ss') }}\n\nSolicitud del usuario {{ $json.chatInput }}",
+        "options": {
+          "systemMessage": "Sos un Coordinador Inteligente de. Agenda\n\nRol: Asistir al administrador de un club de canchas deportivas en la organización de los turnos agendados de sus canchas en Google Calendar.\n\nObjetivo: Interpretar solicitudes en lenguaje natural, consultar agenda, verificar disponibilidad y crear eventos cuando corresponda registrar una reserva de cancha.\n\nReglas de comportamiento:\n\nSolicita los datos necesarios si la petición esta incompleta: fecha, hora y duración, nombre del cliente, teléfono y email.\n\nAntes de crear cualquier evento, consulta la agenda para verificar que no exista un conflicto y que el cliente no tenga ya agendado un evento en mismo día y horario en el calendario conectado.\n\nSi existe un conflicto, informa al usuario y solicita otro horario.\n\nNunca inventes fechas, horarios ni datos de reuniones.\n\nInterpreta las fechas y horas utilizando la zona horaria de Argentina (GMT-03:00).\n\nNo crees eventos sin confirmación de los datos necesarios.\n\nSolo pueden haber hasta 4 eventos por horario porque el club tiene solo 4 canchas.\n\nSolo puedes agendar eventos entre las 7am y las 11pm hora local Buenos Aires, Argentina.\n\nResponde siempre en español, de manera clara y amigable. Siendo siempre respetuoso.\n\nRestricciones: No modifiques ni elimines eventos existentes. No compartas información privada de otros eventos.\n\nNo agendes mas de 4 superpuestos en un mismo horario.  Si no hay espacio para la duración solicitada por el cliente, no se debe agendar un evento.\n\nÁmbito:\n\n- Solo atiendes consultas relacionadas con reservas de canchas del club: consultar disponibilidad y crear nuevas reservas.\n- Quedan fuera de tu ámbito: modificar o cancelar reservas existentes, precios, pagos, reclamos, información de otros clientes o eventos, y cualquier tema ajeno al club.\n- Si la solicitud está fuera de tu ámbito, indícalo amablemente, no intentes resolverla y aplica la sección de Escalamiento.\n\nEscalamiento:\n\n- Deriva la consulta a un responsable humano del club cuando:\n  - El usuario pida modificar, cancelar o reclamar una reserva, o consulte temas fuera de tu ámbito.\n  - El usuario solicite explícitamente hablar con una persona.\n  - Una herramienta falle (Google Calendar o Gmail) o no puedas verificar la disponibilidad.\n  - Tras dos intentos no logres obtener los datos necesarios o la solicitud siga siendo ambigua.\n- Al derivar, responde: \"Voy a derivar tu consulta a un responsable del club, que se comunicará contigo a la brevedad.\"\n- No inventes soluciones, no prometas resultados y no crees eventos en una conversación escalada.\n\nUso de herramientas:\n\n- Utiliza Google Calendar Get Many para consultar agenda en el calendario conectado antes de crear un evento.\n- Utiliza Google Calendar Create únicamente cuando hayas verificado que no existe un conflicto y tengas todos los datos necesarios.\n- Después de crear correctamente una reunión, utiliza Gmail Tool para enviar un correo de confirmación al cliente/usuario.\n- No utilices Gmail para consultas de agenda ni cuando exista un conflicto de horario.\n- Si Google Calendar Create falla, no envies correo.",
+          "maxIterations": 5,
+          "returnIntermediateSteps": true
+        }
+      },
+      "id": "0108e401-112c-4361-9668-cda2a937c757",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        224,
+        0
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash-lite",
+        "options": {}
+      },
+      "id": "8269fa3f-7af3-44cd-a242-800a941ddb89",
+      "name": "Google Gemini Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        128,
+        192
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "8mcOuuE6BoI3Gf6P",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Esta herramienta se debe utilizar unicamente para revisar si la fecha y hora solicitada por el usuario se encuentra disponible, nunca para brindar datos privados de los enetos agendados o informar disponibilidad.",
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "value": "e46464bf5a261140883c69339f5a6c87485be1641b067466beaa26dd6de991c4@group.calendar.google.com",
+          "mode": "list",
+          "cachedResultName": "Club de Canchas"
+        },
+        "limit": 5,
+        "options": {
+          "timeZone": {
+            "__rl": true,
+            "value": "America/Argentina/Buenos_Aires",
+            "mode": "list",
+            "cachedResultName": "America/Argentina/Buenos_Aires"
+          }
+        }
+      },
+      "id": "f5a75cbb-1e21-44e4-b28a-7adb9131b55c",
+      "name": "Get many events in Google Calendar",
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.4,
+      "position": [
+        272,
+        240
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "2E8Ov15cVntFxi8B",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Utiliza esta herramienta para crear eventos unicamente una vez que hayas verificado la disponibilidad, utilizando la fecha, horario y duración indicados por el usuario.",
+        "calendar": {
+          "__rl": true,
+          "value": "e46464bf5a261140883c69339f5a6c87485be1641b067466beaa26dd6de991c4@group.calendar.google.com",
+          "mode": "list",
+          "cachedResultName": "Club de Canchas"
+        },
+        "additionalFields": {}
+      },
+      "id": "d0da0b98-78cd-48ed-88ca-d7c55122e17b",
+      "name": "Create an event in Google Calendar",
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.4,
+      "position": [
+        432,
+        256
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "2E8Ov15cVntFxi8B",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Utiliza esta herramienta para enviar un correo electronico al usuario unicamente despues de crear correctamente un evento en Google Calendar. No utilices esta herramienta si hay conflictos de horario.",
+        "sendTo": "caro.cimini@gmail.com",
+        "subject": "Reserva de Cancha Confirmada",
+        "emailType": "text",
+        "message": "Tu reserva de cancha ah sido confirmada en el club",
+        "options": {}
+      },
+      "id": "04bd5023-e1ac-4ce7-bced-34121c3fc081",
+      "name": "Send a message in Gmail",
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.2,
+      "position": [
+        528,
+        224
+      ],
+      "webhookId": "7c2a69a8-b0a8-44aa-8965-e270e92be215",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "KwLMBFXOIh8AhC9i",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "caro.cimini@gmail.com",
+        "subject": "=[Auditoría Agente] {{ $json.error ? 'ERROR' : (($json.output || '').toLowerCase().includes('derivar') ? 'ESCALAMIENTO' : 'OK') }} - Ejecución {{ $execution.id }}",
+        "emailType": "text",
+        "message": "=Auditoría de ejecución del Coordinador de Agenda\n\nEjecución: {{ $execution.id }}\nSesión: {{ $('When chat message received').item.json.sessionId }}\nFecha: {{ $now.setZone('America/Argentina/Buenos_Aires').toFormat('yyyy-MM-dd HH:mm:ss') }}\n\nMensaje del usuario:\n{{ $('When chat message received').item.json.chatInput }}\n\nRespuesta del agente:\n{{ $json.output || '(sin respuesta)' }}\n\nError:\n{{ $json.error ? JSON.stringify($json.error) : 'Ninguno' }}\n\nHerramientas usadas ({{ ($json.intermediateSteps || []).length }}):\n{{ ($json.intermediateSteps || []).map((s, i) => (i + 1) + '. ' + ((s.action && s.action.tool) || '-') + '\\nEntrada: ' + JSON.stringify((s.action && s.action.toolInput) || {}) + '\\nRazonamiento: ' + ((s.action && s.action.log) || '-') + '\\nResultado: ' + (typeof s.observation === 'string' ? s.observation : JSON.stringify(s.observation))).join('\\n\\n') || 'Ninguna' }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "81839626-cf39-4257-86a6-44a984016101",
+      "name": "Auditar razonamiento por email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        688,
+        0
+      ],
+      "webhookId": "b17abf7f-e78f-4cbc-849b-58de21850dc2",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "KwLMBFXOIh8AhC9i",
+          "name": "Gmail account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "10bwdjPxIvF9rW8QfgpE4PUswRScjn8W-BcN0VXAJOKQ",
+          "cachedResultName": "Registro de ejecuciones para supervisión"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Registro"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "execution_id": "={{ $execution.id }}",
+            "session_id": "={{ $('When chat message received').item.json.sessionId }}",
+            "executed_at": "={{ $now.setZone('America/Argentina/Buenos_Aires').toFormat('yyyy-MM-dd HH:mm:ss') }}",
+            "user_message": "={{ $('When chat message received').item.json.chatInput }}",
+            "agent_response": "={{ $('AI Agent').item.json.output || '' }}",
+            "status": "={{ $('AI Agent').item.json.error ? 'error' : ((($('AI Agent').item.json.output || '').toLowerCase().includes('max iterations')) ? 'limite_iteraciones' : 'ok') }}",
+            "tool_calls": "={{ ($('AI Agent').item.json.intermediateSteps || []).length }}",
+            "tools_used": "={{ ($('AI Agent').item.json.intermediateSteps || []).map(s => s.action && s.action.tool).filter(t => t).join(', ') }}",
+            "max_iterations": 5,
+            "limit_reached": "={{ ($('AI Agent').item.json.output || '').toLowerCase().includes('max iterations') || JSON.stringify($('AI Agent').item.json.error || '').toLowerCase().includes('iteration') }}",
+            "error_message": "={{ $('AI Agent').item.json.error ? JSON.stringify($('AI Agent').item.json.error) : '' }}",
+            "needs_review": "={{ !!$('AI Agent').item.json.error || ($('AI Agent').item.json.output || '').toLowerCase().includes('max iterations') }}"
+          },
+          "schema": [
+            {
+              "id": "execution_id",
+              "displayName": "execution_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "session_id",
+              "displayName": "session_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "executed_at",
+              "displayName": "executed_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "user_message",
+              "displayName": "user_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "agent_response",
+              "displayName": "agent_response",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tool_calls",
+              "displayName": "tool_calls",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tools_used",
+              "displayName": "tools_used",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "max_iterations",
+              "displayName": "max_iterations",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "limit_reached",
+              "displayName": "limit_reached",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "error_message",
+              "displayName": "error_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "needs_review",
+              "displayName": "needs_review",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "24e4313a-99c4-4929-afeb-a4d99832667e",
+      "name": "Registro de ejecuciones para supervisión",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        912,
+        0
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "X4AHkEvSzPi3logR",
+          "name": "Google Sheets account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "resp-output",
+              "name": "output",
+              "type": "string",
+              "value": "={{ $('AI Agent').item.json.output || 'Lo siento, no pude completar tu solicitud en este momento. Un responsable del club revisará tu caso.' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "91d3e7a7-70cf-4ba4-85ec-f89ebd657f1a",
+      "name": "Responder al chat",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1184,
+        0
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Auditar razonamiento por email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many events in Google Calendar": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create an event in Google Calendar": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message in Gmail": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auditar razonamiento por email": {
+      "main": [
+        [
+          {
+            "node": "Registro de ejecuciones para supervisión",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registro de ejecuciones para supervisión": {
+      "main": [
+        [
+          {
+            "node": "Responder al chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "0c1ab894-2b7f-4888-867a-71d6afc9a82b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4b4a9d44d182cc447906e4f458de4adbaea3adca4b116a18b3e6882b18b902c4"
+  },
+  "nodeGroups": [],
+  "id": "ri1R2ea0PENLroD1",
+  "tags": []
+}
